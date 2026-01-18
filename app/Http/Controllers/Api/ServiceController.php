@@ -14,7 +14,7 @@ class ServiceController extends Controller
      */
     public function index()
     {
-        $services = Service::with('customer')->get();
+        $services = Service::all();
         return response()->json($services);
     }
 
@@ -24,7 +24,6 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'customer_id' => 'required|exists:customers,id',
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:255',
         ]);
@@ -48,7 +47,6 @@ class ServiceController extends Controller
     public function update(Request $request, Service $service)
     {
         $validatedData = $request->validate([
-            'customer_id' => 'sometimes|required|exists:customers,id',
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string|max:255',
         ]);

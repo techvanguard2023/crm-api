@@ -6,8 +6,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DomainController;
 use App\Http\Controllers\Api\ServiceController;
-use App\Http\Controllers\Api\PriceController;
-use App\Http\Controllers\Api\RecurrenceController;
 
 Route::prefix('v1')->group(function () {
 
@@ -23,10 +21,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
 
         Route::apiResource('customers', CustomerController::class);
+        Route::post('/customers/{customer}/services', [CustomerController::class, 'addService']);
         Route::apiResource('domains', DomainController::class);
         Route::apiResource('services', ServiceController::class);
-        Route::apiResource('prices', PriceController::class);
-        Route::apiResource('recurrences', RecurrenceController::class);
     });
 
 });

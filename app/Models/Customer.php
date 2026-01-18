@@ -23,6 +23,9 @@ class Customer extends Model
 
     public function services()
     {
-        return $this->hasMany(Service::class);
+        return $this->belongsToMany(Service::class)
+                    ->using(CustomerService::class)
+                    ->withPivot('price', 'recurrence')
+                    ->withTimestamps();
     }
 }

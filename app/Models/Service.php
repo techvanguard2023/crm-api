@@ -12,23 +12,15 @@ class Service extends Model
     public $timestamps = false; // No timestamps in migration
 
     protected $fillable = [
-        'customer_id',
         'name',
         'description',
     ];
 
-    public function customer()
+    public function customers()
     {
-        return $this->belongsTo(Customer::class);
-    }
-
-    public function prices()
-    {
-        return $this->hasMany(Price::class);
-    }
-
-    public function recurrences()
-    {
-        return $this->hasMany(Recurrence::class);
+        return $this->belongsToMany(Customer::class)
+                    ->using(CustomerService::class)
+                    ->withPivot('price', 'recurrence')
+                    ->withTimestamps();
     }
 }
