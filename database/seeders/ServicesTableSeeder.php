@@ -31,6 +31,12 @@ class ServicesTableSeeder extends Seeder
                 'description' => 'Suporte técnico e manutenção.',
                 'created_at' => now(),
                 'updated_at' => now(),
+            ],
+            [
+                'name' => 'Registro',
+                'description' => 'Registro ou renovação de domínios.',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         ];
 
