@@ -25,7 +25,7 @@ class Customer extends Model
     {
         return $this->belongsToMany(Service::class)
                     ->using(CustomerService::class)
-                    ->withPivot('price', 'recurrence')
+                    ->withPivot('id', 'price', 'recurrence', 'start_date', 'next_due_date')
                     ->withTimestamps();
     }
 }

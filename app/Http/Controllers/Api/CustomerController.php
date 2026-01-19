@@ -77,19 +77,15 @@ class CustomerController extends Controller
             'service_id' => 'required|exists:services,id',
             'price' => 'required|numeric|min:0',
             'recurrence' => 'required|string',
+            'start_date' => 'required|date',
+            'next_due_date' => 'required|date',
         ]);
-
-        // Attach user to service with pivot data
-        // We use syncWithoutDetaching or just attach. syncWithoutDetaching is safer for updates if needed,
-        // but attach allows duplicates if the table doesn't have a unique constraint on the pair (usually it does or should).
-        // Let's use attach for now, or syncWithoutDetaching to prevent errors if already exists.
-        // Given the requirement "Clientes podem ter varios serviços" (Customers can have multiple services),
-        // if they can have the SAME service twice (e.g. 2 hosting plans), then we need an ID on pivot (we have it).
-        // But usually attach is fine.
 
         $customer->services()->attach($validatedData['service_id'], [
             'price' => $validatedData['price'],
-            'recurrence' => $validatedData['recurrence']
+            'recurrence' => $validatedData['recurrence'],
+            'start_date' => $validatedData['start_date'],
+            'next_due_date' => $validatedData['next_due_date']
         ]);
 
         return response()->json(['message' => 'Service attached successfully.'], 201);

@@ -15,5 +15,22 @@ class CustomerService extends Pivot
         'service_id',
         'price',
         'recurrence',
+        'start_date',
+        'next_due_date',
     ];
+
+    protected $casts = [
+        'start_date' => 'date',
+        'next_due_date' => 'date',
+    ];
+
+    public function renewals()
+    {
+        return $this->hasMany(ServiceRenewal::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 }

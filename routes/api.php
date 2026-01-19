@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DomainController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\CustomerServiceController;
+use App\Http\Controllers\Api\PaymentController;
 
 Route::prefix('v1')->group(function () {
 
@@ -24,6 +26,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/customers/{customer}/services', [CustomerController::class, 'addService']);
         Route::apiResource('domains', DomainController::class);
         Route::apiResource('services', ServiceController::class);
+
+        Route::post('/customer-services/{id}/renew', [CustomerServiceController::class, 'renew']);
+
+        Route::post('/customer-services/{id}/payment-request', [PaymentController::class, 'store']);
+        Route::put('/payments/callback', [PaymentController::class, 'update']);
     });
 
 });
