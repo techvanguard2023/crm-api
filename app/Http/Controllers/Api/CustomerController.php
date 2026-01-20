@@ -90,4 +90,24 @@ class CustomerController extends Controller
 
         return response()->json(['message' => 'Service attached successfully.'], 201);
     }
+    /**
+     * Get customers who have at least one active service.
+     */
+    public function withServices()
+    {
+        $customers = Customer::has('services')->with('domains', 'services')->get();
+        return response()->json($customers);
+    }
+
+    /**
+     * Get customers filtered by a specific service type (service ID).
+     */
+    public function byServiceType($serviceId)
+    {
+        $customers = Customer::whereHas('services', function ($query) use ($serviceId) {
+            $query->where('services.id', $serviceId);
+        })->with('domains', 'services')->get();
+
+        return response()->json($customers);
+    }
 }
