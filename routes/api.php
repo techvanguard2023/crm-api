@@ -22,10 +22,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
 
-        Route::apiResource('customers', CustomerController::class);
-        Route::post('/customers/{customer}/services', [CustomerController::class, 'addService']);
         Route::get('/customers/with-services', [CustomerController::class, 'withServices']);
         Route::get('/customers/by-service/{service}', [CustomerController::class, 'byServiceType']);
+        Route::apiResource('customers', CustomerController::class);
+        Route::post('/customers/{customer}/services', [CustomerController::class, 'addService']);
         Route::apiResource('domains', DomainController::class);
         Route::apiResource('services', ServiceController::class);
 

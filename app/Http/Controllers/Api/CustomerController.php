@@ -95,7 +95,7 @@ class CustomerController extends Controller
      */
     public function withServices()
     {
-        $customers = Customer::has('services')->with('domains', 'services')->get();
+        $customers = Customer::has('services')->with('services')->get();
         return response()->json($customers);
     }
 
@@ -106,7 +106,7 @@ class CustomerController extends Controller
     {
         $customers = Customer::whereHas('services', function ($query) use ($serviceId) {
             $query->where('services.id', $serviceId);
-        })->with('domains', 'services')->get();
+        })->with('services')->get();
 
         return response()->json($customers);
     }
