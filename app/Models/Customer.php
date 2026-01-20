@@ -14,6 +14,13 @@ class Customer extends Model
         'name',
         'email',
         'phone',
+        'type',
+        'document',
+        'address',
+        'city',
+        'state',
+        'zip_code',
+        'country',
     ];
 
     public function domains()

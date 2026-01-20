@@ -27,6 +27,13 @@ class CustomerController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:customers,email',
             'phone' => 'required|string|max:20',
+            'type' => 'nullable|string',
+            'document' => 'nullable|string',
+            'address' => 'nullable|string',
+            'city' => 'nullable|string',
+            'state' => 'nullable|string',
+            'zip_code' => 'nullable|string',
+            'country' => 'nullable|string',
         ]);
 
         $customer = Customer::create($validatedData);
@@ -51,6 +58,13 @@ class CustomerController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|email|unique:customers,email,' . $customer->id,
             'phone' => 'sometimes|required|string|max:20',
+            'type' => 'nullable|string',
+            'document' => 'nullable|string',
+            'address' => 'nullable|string',
+            'city' => 'nullable|string',
+            'state' => 'nullable|string',
+            'zip_code' => 'nullable|string',
+            'country' => 'nullable|string',
         ]);
 
         $customer->update($validatedData);
