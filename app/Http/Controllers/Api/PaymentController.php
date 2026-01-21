@@ -127,4 +127,13 @@ class PaymentController extends Controller
         
         $customerService->update(['next_due_date' => $newDueDate]);
     }
+    public function getCustomerByRequestId($requestId)
+    {
+        $payment = Payment::where('request_id', $requestId)->with('customerService')->firstOrFail();
+        
+        // As CustomerService is a pivot, we can access customer_id directly
+        $customer = \App\Models\Customer::findOrFail($payment->customerService->customer_id);
+        
+        return response()->json($customer);
+    }
 }
