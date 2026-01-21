@@ -23,7 +23,7 @@ return new class extends Migration
             $table->decimal('amount', 10, 2); // valorTotalRecebido or initial value
             
             // Status and Date
-            $table->string('status')->default('PENDING'); // situacao
+            $table->string('status')->default('A_RECEBER'); // situacao
             $table->dateTime('paid_at')->nullable(); // dataHoraSituacao
             
             // Payment details

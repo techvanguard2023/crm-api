@@ -22,7 +22,7 @@ class PaymentController extends Controller
         $customerService = CustomerService::findOrFail($id);
 
         $validatedData = $request->validate([
-            'amount' => 'required|numeric',
+            'amount' => 'nullable|numeric',
             'request_id' => 'required|string', // codigoSolicitacao
             'barcode' => 'nullable|string',
             'pix_copy_paste' => 'nullable|string',
