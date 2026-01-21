@@ -31,6 +31,7 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/customer-services/{id}/renew', [CustomerServiceController::class, 'renew']);
 
+        Route::get('/payments', [PaymentController::class, 'index']);
         Route::post('/customer-services/{id}/payment-request', [PaymentController::class, 'store']);
         Route::get('/payments/request/{request_id}', [PaymentController::class, 'getByRequestId']);
         Route::get('/payments/request/{request_id}/customer', [PaymentController::class, 'getCustomerByRequestId']);

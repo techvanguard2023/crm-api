@@ -13,6 +13,35 @@ use Illuminate\Support\Str;
 class PaymentController extends Controller
 {
     /**
+     * List all payments with service details
+     */
+    public function index()
+    {
+        $payments = Payment::with(['customerService.service'])
+            ->get()
+            ->map(function ($payment) {
+                return [
+                    'id' => $payment->id,
+                    'request_id' => $payment->request_id,
+                    'amount' => $payment->amount,
+                    'status' => $payment->status,
+                    'pix_copy_paste' => $payment->pix_copy_paste,
+                    'barcode' => $payment->barcode,
+                    'digitable_line' => $payment->digitable_line,
+                    'your_number' => $payment->your_number,
+                    'payment_method' => $payment->payment_method,
+                    'paid_at' => $payment->paid_at,
+                    'service_name' => $payment->customerService->service->name ?? null,
+                    'due_date' => $payment->customerService->next_due_date ?? null,
+                    'created_at' => $payment->created_at,
+                    'updated_at' => $payment->updated_at,
+                ];
+            });
+
+        return response()->json($payments);
+    }
+
+    /**
      * Store a payment request (generate boleto/pix info).
      * This is separate from 'renew' which was immediate.
      * Use this if you want to store the barcode BEFORE payment.
