@@ -33,4 +33,9 @@ class CustomerService extends Pivot
     {
         return $this->hasMany(Payment::class);
     }
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
 }

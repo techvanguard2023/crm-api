@@ -136,4 +136,26 @@ class PaymentController extends Controller
         
         return response()->json($customer);
     }
+
+    /**
+     * Get payment details by request_id
+     * Returns payment data including service name and due date
+     */
+    public function getByRequestId($requestId)
+    {
+        $payment = Payment::where('request_id', $requestId)
+            ->with(['customerService.service'])
+            ->firstOrFail();
+
+        return response()->json([
+            'request_id' => $payment->request_id,
+            'amount' => $payment->amount,
+            'pix_copy_paste' => $payment->pix_copy_paste,
+            'barcode' => $payment->barcode,
+            'digitable_line' => $payment->digitable_line,
+            'your_number' => $payment->your_number,
+            'service_name' => $payment->customerService->service->name ?? null,
+            'due_date' => $payment->customerService->next_due_date ?? null,
+        ]);
+    }
 }
