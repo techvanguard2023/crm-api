@@ -114,7 +114,11 @@ class PaymentController extends Controller
         ]);
         
         // Check if status is RECEBIDO and not processed yet (we could add a 'processed' flag or check if renewal exists)
-        if ($data['situacao'] === 'RECEBIDO') {
+        if ($data['situacao'] === 'RECEBIDO' 
+        || $data['situacao'] === 'CONFIRMADO' 
+        || $data['situacao'] === 'MARCADO_RECEBIDO' 
+        || $data['situacao'] === 'PAGO' 
+        || $data['situacao'] === 'LIQUIDADO') {
              $this->processRenewal($payment);
         }
         
