@@ -25,4 +25,9 @@ class Domain extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function customerServices()
+    {
+        return $this->hasMany(CustomerService::class);
+    }
 }

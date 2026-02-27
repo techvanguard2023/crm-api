@@ -13,11 +13,17 @@ class CustomerService extends Pivot
     protected $fillable = [
         'customer_id',
         'service_id',
+        'domain_id',
         'price',
         'recurrence',
         'start_date',
         'next_due_date',
     ];
+
+    public function domain()
+    {
+        return $this->belongsTo(Domain::class);
+    }
 
     protected $casts = [
         'start_date' => 'date',
