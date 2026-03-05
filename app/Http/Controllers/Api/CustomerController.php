@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 
 use App\Models\Customer;
+use App\Http\Resources\CustomerResource;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
@@ -14,8 +15,10 @@ class CustomerController extends Controller
      */
     public function index()
     {
-        $customers = Customer::with('domains', 'services')->get();
-        return response()->json($customers);
+        $customers = Customer::with(['domains', 'services'])->get();
+        \Illuminate\Database\Eloquent\Collection::make($customers->pluck('services')->flatten()->pluck('pivot'))->load('domain');
+
+        return CustomerResource::collection($customers);
     }
 
     /**
@@ -47,7 +50,10 @@ class CustomerController extends Controller
      */
     public function show(Customer $customer)
     {
-        return response()->json($customer);
+        $customer->load(['domains', 'services']);
+        \Illuminate\Database\Eloquent\Collection::make($customer->services->pluck('pivot'))->load('domain');
+
+        return new CustomerResource($customer);
     }
 
     /**
@@ -111,8 +117,10 @@ class CustomerController extends Controller
      */
     public function withServices()
     {
-        $customers = Customer::has('services')->with('services')->get();
-        return response()->json($customers);
+        $customers = Customer::has('services')->with(['domains', 'services'])->get();
+        \Illuminate\Database\Eloquent\Collection::make($customers->pluck('services')->flatten()->pluck('pivot'))->load('domain');
+
+        return CustomerResource::collection($customers);
     }
 
     /**
@@ -122,10 +130,12 @@ class CustomerController extends Controller
     {
         $customers = Customer::whereHas('services', function ($query) use ($serviceId) {
             $query->where('services.id', $serviceId);
-        })->with(['services' => function ($query) use ($serviceId) {
+        })->with(['domains', 'services' => function ($query) use ($serviceId) {
             $query->where('services.id', $serviceId);
         }])->get();
 
-        return response()->json($customers);
+        \Illuminate\Database\Eloquent\Collection::make($customers->pluck('services')->flatten()->pluck('pivot'))->load('domain');
+
+        return CustomerResource::collection($customers);
     }
 }

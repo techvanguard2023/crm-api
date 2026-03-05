@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CustomerService;
 use App\Models\ServiceRenewal;
+use App\Http\Resources\CustomerServiceBillingResource;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -70,5 +71,23 @@ class CustomerServiceController extends Controller
             'new_due_date' => $newDueDate->toDateString(),
             'service' => $customerService
         ]);
+    }
+
+    /**
+     * Get services ready to be billed (due today).
+     */
+    public function readyToBill(Request $request)
+    {
+        $date = $request->query('date', now()->toDateString());
+
+        $customers = \App\Models\Customer::whereHas('services', function ($query) use ($date) {
+            $query->whereDate('next_due_date', $date);
+        })->with(['services' => function ($query) use ($date) {
+            $query->whereDate('next_due_date', $date);
+        }])->get();
+
+        \Illuminate\Database\Eloquent\Collection::make($customers->pluck('services')->flatten()->pluck('pivot'))->load('domain');
+
+        return \App\Http\Resources\CustomerResource::collection($customers);
     }
 }
