@@ -19,8 +19,8 @@ return new class extends Migration
             $table->string('recurrence'); // e.g., 'monthly', 'yearly', 'one_time'
             $table->string('category')->nullable();
             $table->string('status')->default('pending'); // e.g., 'pending', 'paid', 'cancelled'
-            $table->timestamps();
             $table->softDeletes();
+            $table->timestamps();
         });
     }
 

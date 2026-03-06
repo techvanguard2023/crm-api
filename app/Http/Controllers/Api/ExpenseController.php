@@ -23,7 +23,8 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'description' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
             'amount' => 'required|numeric',
             'date' => 'required|date',
             'recurrence' => 'required|string|in:monthly,yearly,one_time',
@@ -50,7 +51,8 @@ class ExpenseController extends Controller
     public function update(Request $request, Expense $expense)
     {
         $validated = $request->validate([
-            'description' => 'sometimes|required|string|max:255',
+            'name' => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|required|string',
             'amount' => 'sometimes|required|numeric',
             'date' => 'sometimes|required|date',
             'recurrence' => 'sometimes|required|string|in:monthly,yearly,one_time',

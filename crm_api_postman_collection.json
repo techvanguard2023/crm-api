@@ -497,7 +497,7 @@
                         "header": [],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"description\": \"Aluguel\",\n    \"amount\": 1500.00,\n    \"date\": \"2026-03-01\",\n    \"recurrence\": \"monthly\",\n    \"category\": \"infra\",\n    \"status\": \"pending\"\n}",
+                            "raw": "{\n    \"name\": \"Aluguel do Escritório\",\n    \"description\": \"Pagamento referente ao mês de março na filial de SP.\",\n    \"amount\": 1500.00,\n    \"date\": \"2026-03-01\",\n    \"recurrence\": \"monthly\",\n    \"category\": \"infra\",\n    \"status\": \"pending\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -541,7 +541,7 @@
                         "header": [],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"description\": \"Aluguel Março\",\n    \"status\": \"paid\"\n}",
+                            "raw": "{\n    \"name\": \"Aluguel do Escritório (Março)\",\n    \"description\": \"Mês de março pago via PIX.\",\n    \"status\": \"paid\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
