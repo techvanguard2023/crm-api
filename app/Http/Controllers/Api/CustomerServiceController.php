@@ -74,20 +74,71 @@ class CustomerServiceController extends Controller
     }
 
     /**
-     * Get services ready to be billed (due today).
+     * Get services ready to be billed (pending, due today, or upcoming).
      */
     public function readyToBill(Request $request)
     {
-        $date = $request->query('date', now()->toDateString());
+        $services = CustomerService::with(['customer', 'service', 'domain'])
+            ->orderBy('next_due_date', 'asc')
+            ->get();
 
-        $customers = \App\Models\Customer::whereHas('services', function ($query) use ($date) {
-            $query->whereDate('next_due_date', $date);
-        })->with(['services' => function ($query) use ($date) {
-            $query->whereDate('next_due_date', $date);
-        }])->get();
+        $data = $services->map(function ($cs) {
+            $dueDate = Carbon::parse($cs->next_due_date)->startOfDay();
+            $today = now()->startOfDay();
 
-        \Illuminate\Database\Eloquent\Collection::make($customers->pluck('services')->flatten()->pluck('pivot'))->load('domain');
+            if ($dueDate->isPast() && !$dueDate->isToday()) {
+                $status = 'pending'; // Overdue / Pendente
+            } elseif ($dueDate->isToday()) {
+                $status = 'due_today'; // Vence hoje
+            } else {
+                $status = 'upcoming'; // A vencer
+            }
 
-        return \App\Http\Resources\CustomerResource::collection($customers);
+            return [
+                'id' => $cs->id,
+                'customer_name' => $cs->customer->name ?? 'N/A',
+                'service_name' => $cs->service->name ?? 'N/A',
+                'domain_name' => $cs->domain->name ?? null,
+                'amount' => $cs->price,
+                'due_date' => $cs->next_due_date,
+                'status' => $status,
+                'recurrence' => $cs->recurrence,
+            ];
+        });
+
+        // Optional: filter only pending/due_today if requested by frontend
+        // Currently returning all so frontend can categorize them via the 'status' field.
+
+        return response()->json($data);
+    }
+
+    /**
+     * Get metrics for the ready-to-bill screen.
+     */
+    public function readyToBillMetrics()
+    {
+        $today = now()->startOfDay();
+
+        // 1. Total de clientes pendentes (unique customers with overdue services)
+        $pendingCustomers = CustomerService::where('next_due_date', '<', $today)
+            ->distinct('customer_id')
+            ->count('customer_id');
+
+        // 2. Total de serviços a vencer (upcoming/due today)
+        $servicesDue = CustomerService::where('next_due_date', '>=', $today)->count();
+
+        // 3. Total em valor R$ previsto (Pendentes + Todos os que vencem até o fim do mês atual)
+        // Or if 'previsto' means all active pending + next_due_date in current month:
+        $expectedAmountQuery = CustomerService::where('next_due_date', '<', $today)
+            ->orWhereBetween('next_due_date', [
+                $today->copy()->startOfMonth(), 
+                $today->copy()->endOfMonth()
+            ])->sum('price');
+
+        return response()->json([
+            'pending_customers' => $pendingCustomers,
+            'services_due' => $servicesDue,
+            'expected_amount' => number_format($expectedAmountQuery, 2, '.', ''),
+        ]);
     }
 }

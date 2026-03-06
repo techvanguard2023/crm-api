@@ -30,8 +30,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/customers/{customer}/services', [CustomerController::class, 'addService']);
         Route::apiResource('domains', DomainController::class);
         Route::apiResource('services', ServiceController::class);
+        Route::get('/expenses/metrics', [ExpenseController::class, 'metrics']);
         Route::apiResource('expenses', ExpenseController::class);
 
+        Route::get('/customer-services/ready-to-bill-metrics', [CustomerServiceController::class, 'readyToBillMetrics']);
         Route::get('/customer-services/ready-to-bill', [CustomerServiceController::class, 'readyToBill']);
         Route::post('/customer-services/{id}/renew', [CustomerServiceController::class, 'renew']);
 

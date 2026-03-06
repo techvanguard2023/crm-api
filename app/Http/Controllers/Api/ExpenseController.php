@@ -9,6 +9,26 @@ use Illuminate\Http\Request;
 class ExpenseController extends Controller
 {
     /**
+     * Get expense metrics.
+     */
+    public function metrics()
+    {
+        $expenses = Expense::all();
+
+        $totalGeral = $expenses->sum('amount');
+        $totalPago = $expenses->where('status', 'paid')->sum('amount');
+        $totalPendente = $expenses->where('status', 'pending')->sum('amount');
+        $totalCategorias = $expenses->pluck('category')->filter()->unique()->count();
+
+        return response()->json([
+            'total_geral' => number_format($totalGeral, 2, '.', ''),
+            'total_pago' => number_format($totalPago, 2, '.', ''),
+            'total_pendente' => number_format($totalPendente, 2, '.', ''),
+            'total_categorias' => $totalCategorias,
+        ]);
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
