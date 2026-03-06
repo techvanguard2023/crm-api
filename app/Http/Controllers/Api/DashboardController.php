@@ -58,14 +58,33 @@ class DashboardController extends Controller
         }
 
         // 3. Expenses Metrics (Monthly and Yearly)
-        $expenses = Expense::whereYear('date', $currentYear)->get();
+        $expenses = Expense::all();
         $monthlyExpenseTotals = array_fill(1, 12, 0.0);
         $totalYearlyExpenses = 0.0;
 
         foreach ($expenses as $expense) {
             $amount = (float) $expense->amount;
-            $monthlyExpenseTotals[$expense->date->month] += $amount;
-            $totalYearlyExpenses += $amount;
+            $recurrence = $expense->recurrence;
+            $expenseDate = Carbon::parse($expense->date);
+
+            $tempDate = $expenseDate->copy();
+            
+            while ($tempDate->year > $currentYear) {
+                if ($recurrence == 'one_time') break;
+                $tempDate = $this->subtractRecurrence($tempDate, $recurrence);
+            }
+            while ($tempDate->year < $currentYear) {
+                if ($recurrence == 'one_time') break;
+                $tempDate = $this->addRecurrence($tempDate, $recurrence);
+            }
+
+            while ($tempDate->year == $currentYear) {
+                $monthlyExpenseTotals[$tempDate->month] += $amount;
+                $totalYearlyExpenses += $amount;
+                
+                if ($recurrence == 'one_time') break;
+                $tempDate = $this->addRecurrence($tempDate, $recurrence);
+            }
         }
 
         $monthNames = [
