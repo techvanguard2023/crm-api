@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Domain;
-use App\Models\CustomerService;
+use App\Models\Expense;
+use App\Models\ServiceRenewal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\CustomerService;
 
 class DashboardController extends Controller
 {
@@ -18,36 +20,27 @@ class DashboardController extends Controller
     public function index()
     {
         $now = now();
-        $startOfMonth = $now->copy()->startOfMonth();
-        $endOfMonth = $now->copy()->endOfMonth();
-        $startOfYear = $now->copy()->startOfYear();
-        $endOfYear = $now->copy()->endOfYear();
+        $currentMonth = $now->month;
+        $currentYear = $now->year;
 
         // 1. Basic Counts
         $totalCustomers = Customer::count();
         $totalDomains = Domain::count();
         $totalActiveServices = CustomerService::count();
 
-        // 2. Financial Metrics & Annual Projection
+        // 2. Financial Metrics & Annual Projection (Revenue)
         $services = CustomerService::all();
         
-        $monthlyTotals = array_fill(1, 12, 0);
-        $totalYearlyProjection = 0;
-        $currentMonth = $now->month;
-        $currentYear = $now->year;
+        $monthlyRevenueTotals = array_fill(1, 12, 0.0);
+        $totalYearlyRevenueProjection = 0.0;
 
         foreach ($services as $service) {
             $price = (float) $service->price;
             $recurrence = $service->recurrence;
             $dueDate = Carbon::parse($service->next_due_date);
 
-            // We want to project all occurrences in the current year
-            // Even if the next_due_date is in the past, or in the future
-            
-            // Start from the first occurrence in the current year
             $tempDate = $dueDate->copy();
             
-            // Go back to the first possible date in the current year based on recurrence
             while ($tempDate->year > $currentYear) {
                 $tempDate = $this->subtractRecurrence($tempDate, $recurrence);
             }
@@ -55,15 +48,24 @@ class DashboardController extends Controller
                 $tempDate = $this->addRecurrence($tempDate, $recurrence);
             }
 
-            // Now project forward within the current year
             while ($tempDate->year == $currentYear) {
-                $monthlyTotals[$tempDate->month] += $price;
-                $totalYearlyProjection += $price;
+                $monthlyRevenueTotals[$tempDate->month] += $price;
+                $totalYearlyRevenueProjection += $price;
                 $tempDate = $this->addRecurrence($tempDate, $recurrence);
                 
-                // Safety break for unknown recurrences that don't advance date
                 if ($tempDate->year == $currentYear && $recurrence == 'one_time') break;
             }
+        }
+
+        // 3. Expenses Metrics (Monthly and Yearly)
+        $expenses = Expense::whereYear('date', $currentYear)->get();
+        $monthlyExpenseTotals = array_fill(1, 12, 0.0);
+        $totalYearlyExpenses = 0.0;
+
+        foreach ($expenses as $expense) {
+            $amount = (float) $expense->amount;
+            $monthlyExpenseTotals[$expense->date->month] += $amount;
+            $totalYearlyExpenses += $amount;
         }
 
         $monthNames = [
@@ -77,9 +79,19 @@ class DashboardController extends Controller
             $annualProjection[] = [
                 'month_number' => $i,
                 'month_name' => $monthNames[$i],
-                'total' => number_format($monthlyTotals[$i], 2, '.', '')
+                'revenue' => number_format($monthlyRevenueTotals[$i], 2, '.', ''),
+                'expenses' => number_format($monthlyExpenseTotals[$i], 2, '.', ''),
+                'net' => number_format($monthlyRevenueTotals[$i] - $monthlyExpenseTotals[$i], 2, '.', '')
             ];
         }
+
+        $grossMonth = $monthlyRevenueTotals[$currentMonth];
+        $expensesMonth = $monthlyExpenseTotals[$currentMonth];
+        $netMonth = $grossMonth - $expensesMonth;
+
+        $grossYear = $totalYearlyRevenueProjection;
+        $expensesYear = $totalYearlyExpenses;
+        $netYear = $grossYear - $expensesYear;
 
         return response()->json([
             'counts' => [
@@ -88,8 +100,12 @@ class DashboardController extends Controller
                 'total_active_services' => $totalActiveServices,
             ],
             'financial' => [
-                'to_receive_current_month' => number_format($monthlyTotals[$currentMonth], 2, '.', ''),
-                'to_receive_current_year' => number_format($totalYearlyProjection, 2, '.', ''),
+                'gross_month' => number_format($grossMonth, 2, '.', ''),
+                'expenses_month' => number_format($expensesMonth, 2, '.', ''),
+                'net_month' => number_format($netMonth, 2, '.', ''),
+                'gross_year' => number_format($grossYear, 2, '.', ''),
+                'expenses_year' => number_format($expensesYear, 2, '.', ''),
+                'net_year' => number_format($netYear, 2, '.', ''),
             ],
             'annual_projection' => $annualProjection
         ]);

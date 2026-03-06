@@ -446,6 +446,140 @@
                     "response": []
                 }
             ]
+        },
+        {
+            "name": "Dashboard",
+            "item": [
+                {
+                    "name": "Get Metrics",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/dashboard/metrics",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "dashboard",
+                                "metrics"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Expenses",
+            "item": [
+                {
+                    "name": "List Expenses",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/expenses",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "expenses"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Expense",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Aluguel\",\n    \"amount\": 1500.00,\n    \"date\": \"2026-03-01\",\n    \"recurrence\": \"monthly\",\n    \"category\": \"infra\",\n    \"status\": \"pending\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/expenses",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "expenses"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Show Expense",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/expenses/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "expenses",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Expense",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Aluguel Março\",\n    \"status\": \"paid\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/expenses/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "expenses",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Expense",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/expenses/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "expenses",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "auth": {

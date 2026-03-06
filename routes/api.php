@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\CustomerServiceController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ExpenseController;
 
 Route::prefix('v1')->group(function () {
 
@@ -29,6 +30,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/customers/{customer}/services', [CustomerController::class, 'addService']);
         Route::apiResource('domains', DomainController::class);
         Route::apiResource('services', ServiceController::class);
+        Route::apiResource('expenses', ExpenseController::class);
 
         Route::get('/customer-services/ready-to-bill', [CustomerServiceController::class, 'readyToBill']);
         Route::post('/customer-services/{id}/renew', [CustomerServiceController::class, 'renew']);
