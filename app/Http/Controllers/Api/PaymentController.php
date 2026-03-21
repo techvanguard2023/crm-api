@@ -20,23 +20,23 @@ class PaymentController extends Controller
         $payments = Payment::with(['customerService.service'])
             ->get()
             ->map(function ($payment) {
-                return [
-                    'id' => $payment->id,
-                    'request_id' => $payment->request_id,
-                    'amount' => $payment->amount,
-                    'status' => $payment->status,
-                    'pix_copy_paste' => $payment->pix_copy_paste,
-                    'barcode' => $payment->barcode,
-                    'digitable_line' => $payment->digitable_line,
-                    'your_number' => $payment->your_number,
-                    'payment_method' => $payment->payment_method,
-                    'paid_at' => $payment->paid_at,
-                    'service_name' => $payment->customerService->service->name ?? null,
-                    'due_date' => $payment->customerService->next_due_date ?? null,
-                    'created_at' => $payment->created_at,
-                    'updated_at' => $payment->updated_at,
-                ];
-            });
+            return [
+            'id' => $payment->id,
+            'request_id' => $payment->request_id,
+            'amount' => $payment->amount,
+            'status' => $payment->status,
+            'pix_copy_paste' => $payment->pix_copy_paste,
+            'barcode' => $payment->barcode,
+            'digitable_line' => $payment->digitable_line,
+            'your_number' => $payment->your_number,
+            'payment_method' => $payment->payment_method,
+            'paid_at' => $payment->paid_at,
+            'service_name' => $payment->customerService->service->name ?? null,
+            'due_date' => $payment->customerService->next_due_date ?? null,
+            'created_at' => $payment->created_at,
+            'updated_at' => $payment->updated_at,
+            ];
+        });
 
         return response()->json($payments);
     }
@@ -58,21 +58,21 @@ class PaymentController extends Controller
             'status' => 'nullable|string',
             // Add other fields as necessary
         ]);
-        
+
         $payment = new Payment();
         $payment->customer_service_id = $customerService->id;
         $payment->fill([
-             'request_id' => $validatedData['request_id'],
-             'amount' => $validatedData['amount'],
-             'status' => $validatedData['status'] ?? 'PENDING',
-             'barcode' => $validatedData['barcode'] ?? null,
-             'pix_copy_paste' => $validatedData['pix_copy_paste'] ?? null,
+            'request_id' => $validatedData['request_id'],
+            'amount' => $validatedData['amount'],
+            'status' => $validatedData['status'] ?? 'PENDING',
+            'barcode' => $validatedData['barcode'] ?? null,
+            'pix_copy_paste' => $validatedData['pix_copy_paste'] ?? null,
         ]);
         $payment->save();
 
         return response()->json($payment, 201);
     }
-    
+
     /**
      * Webhook/Callback to update payment status.
      * Or a manual update endpoint.
@@ -81,7 +81,7 @@ class PaymentController extends Controller
     {
         // Assuming the bank sends the body structure provided by user
         // We find by request_id (codigoSolicitacao)
-        
+
         $data = $request->validate([
             'codigoSolicitacao' => 'required|string',
             'situacao' => 'required|string',
@@ -96,14 +96,14 @@ class PaymentController extends Controller
             'txid' => 'nullable|string',
             'pixCopiaECola' => 'nullable|string',
         ]);
-        
+
         $payment = Payment::where('request_id', $data['codigoSolicitacao'])->firstOrFail();
-        
+
         // Update payment details
         $payment->update([
             'status' => $data['situacao'],
             'amount' => $data['valorTotalRecebido'] ?? $payment->amount,
-            'paid_at' => isset($data['dataHoraSituacao']) ? Carbon::parse($data['dataHoraSituacao']) : null,
+            'paid_at' => isset($data['dataHoraSituacao']) ?Carbon::parse($data['dataHoraSituacao']) : null,
             'your_number' => $data['seuNumero'] ?? $payment->your_number,
             'payment_method' => $data['origemRecebimento'] ?? $payment->payment_method,
             'our_number' => $data['nossoNumero'] ?? $payment->our_number,
@@ -112,43 +112,52 @@ class PaymentController extends Controller
             'txid' => $data['txid'] ?? $payment->txid,
             'pix_copy_paste' => $data['pixCopiaECola'] ?? $payment->pix_copy_paste,
         ]);
-        
+
         // Check if status is RECEBIDO and not processed yet (we could add a 'processed' flag or check if renewal exists)
-        if ($data['situacao'] === 'RECEBIDO' 
-        || $data['situacao'] === 'CONFIRMADO' 
-        || $data['situacao'] === 'MARCADO_RECEBIDO' 
-        || $data['situacao'] === 'PAGO' 
+        if ($data['situacao'] === 'RECEBIDO'
+        || $data['situacao'] === 'CONFIRMADO'
+        || $data['situacao'] === 'MARCADO_RECEBIDO'
+        || $data['situacao'] === 'PAGO'
         || $data['situacao'] === 'LIQUIDADO') {
-             $this->processRenewal($payment);
+            $this->processRenewal($payment);
         }
-        
+
         return response()->json(['message' => 'Payment updated successfully']);
     }
 
     private function processRenewal(Payment $payment)
     {
         $customerService = $payment->customerService;
-        
-        // Avoid duplicate renewals for the same payment
-        // (Logic depends on business rules, maybe we check if a renewal exists linked to this payment? 
-        //  Our ServiceRenewal doesn't have payment_id yet, but we can infer or add it.
-        //  For now, let's just proceed assuming the webhook comes ONCE or update is idempotent enough)
-        
+
+        // Skip renewal for one_time services
+        if ($customerService->recurrence === 'one_time') {
+            return;
+        }
+
+
         // Calculate next date (reuse logic? extract to service?)
         $baseDate = $customerService->next_due_date ?? $customerService->start_date ?? now();
         $baseDate = Carbon::parse($baseDate);
-         
-        // If the payment date is significantly after next_due_date, maybe we should base it on payment date?
-        // But usually sticking to cycle is safer.
-        
+
+
         $newDueDate = $baseDate->copy();
-        
+
         switch ($customerService->recurrence) {
-            case 'monthly': $newDueDate->addMonth(); break;
-            case 'quarterly': $newDueDate->addMonths(3); break;
-            case 'semiannual': $newDueDate->addMonths(6); break;
-            case 'yearly': $newDueDate->addYear(); break;
-            default: $newDueDate->addMonth(); break;
+            case 'monthly':
+                $newDueDate->addMonth();
+                break;
+            case 'quarterly':
+                $newDueDate->addMonths(3);
+                break;
+            case 'semiannual':
+                $newDueDate->addMonths(6);
+                break;
+            case 'yearly':
+                $newDueDate->addYear();
+                break;
+            default:
+                $newDueDate->addMonth();
+                break;
         }
 
         ServiceRenewal::create([
@@ -157,16 +166,16 @@ class PaymentController extends Controller
             'renewed_at' => $payment->paid_at ?? now(),
             'renews_until' => $newDueDate
         ]);
-        
+
         $customerService->update(['next_due_date' => $newDueDate]);
     }
     public function getCustomerByRequestId($requestId)
     {
         $payment = Payment::where('request_id', $requestId)->with('customerService')->firstOrFail();
-        
+
         // As CustomerService is a pivot, we can access customer_id directly
         $customer = \App\Models\Customer::findOrFail($payment->customerService->customer_id);
-        
+
         return response()->json($customer);
     }
 
