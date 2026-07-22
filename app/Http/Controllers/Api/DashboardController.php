@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Domain;
 use App\Models\Expense;
 use App\Models\ServiceRenewal;
+use App\Services\RecurrenceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,16 +43,16 @@ class DashboardController extends Controller
             $tempDate = $dueDate->copy();
             
             while ($tempDate->year > $currentYear) {
-                $tempDate = $this->subtractRecurrence($tempDate, $recurrence);
+                $tempDate = RecurrenceService::subtractRecurrence($tempDate, $recurrence);
             }
             while ($tempDate->year < $currentYear) {
-                $tempDate = $this->addRecurrence($tempDate, $recurrence);
+                $tempDate = RecurrenceService::addRecurrence($tempDate, $recurrence);
             }
 
             while ($tempDate->year == $currentYear) {
                 $monthlyRevenueTotals[$tempDate->month] += $price;
                 $totalYearlyRevenueProjection += $price;
-                $tempDate = $this->addRecurrence($tempDate, $recurrence);
+                $tempDate = RecurrenceService::addRecurrence($tempDate, $recurrence);
                 
                 if ($tempDate->year == $currentYear && $recurrence == 'one_time') break;
             }
@@ -71,19 +72,19 @@ class DashboardController extends Controller
             
             while ($tempDate->year > $currentYear) {
                 if ($recurrence == 'one_time') break;
-                $tempDate = $this->subtractRecurrence($tempDate, $recurrence);
+                $tempDate = RecurrenceService::subtractRecurrence($tempDate, $recurrence);
             }
             while ($tempDate->year < $currentYear) {
                 if ($recurrence == 'one_time') break;
-                $tempDate = $this->addRecurrence($tempDate, $recurrence);
+                $tempDate = RecurrenceService::addRecurrence($tempDate, $recurrence);
             }
 
             while ($tempDate->year == $currentYear) {
                 $monthlyExpenseTotals[$tempDate->month] += $amount;
                 $totalYearlyExpenses += $amount;
-                
+
                 if ($recurrence == 'one_time') break;
-                $tempDate = $this->addRecurrence($tempDate, $recurrence);
+                $tempDate = RecurrenceService::addRecurrence($tempDate, $recurrence);
             }
         }
 
@@ -130,27 +131,4 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function addRecurrence(Carbon $date, $recurrence)
-    {
-        $newDate = $date->copy();
-        switch ($recurrence) {
-            case 'monthly': return $newDate->addMonth();
-            case 'quarterly': return $newDate->addMonths(3);
-            case 'semiannual': return $newDate->addMonths(6);
-            case 'yearly': return $newDate->addYear();
-            default: return $newDate->addMonth(); // Fallback
-        }
-    }
-
-    private function subtractRecurrence(Carbon $date, $recurrence)
-    {
-        $newDate = $date->copy();
-        switch ($recurrence) {
-            case 'monthly': return $newDate->subMonth();
-            case 'quarterly': return $newDate->subMonths(3);
-            case 'semiannual': return $newDate->subMonths(6);
-            case 'yearly': return $newDate->subYear();
-            default: return $newDate->subMonth(); // Fallback
-        }
-    }
 }

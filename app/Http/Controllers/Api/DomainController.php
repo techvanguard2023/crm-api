@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-
+use App\Http\Resources\DomainResource;
 use App\Models\Domain;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -16,7 +16,7 @@ class DomainController extends Controller
     public function index()
     {
         $domains = Domain::with('customer')->get();
-        return response()->json($domains);
+        return DomainResource::collection($domains);
     }
 
     /**
@@ -37,7 +37,7 @@ class DomainController extends Controller
 
         $domain = Domain::create($validatedData->validated());
 
-        return response()->json($domain, 201);
+        return (new DomainResource($domain))->response()->setStatusCode(201);
     }
 
     /**
@@ -45,7 +45,7 @@ class DomainController extends Controller
      */
     public function show(Domain $domain)
     {
-        return response()->json($domain);
+        return new DomainResource($domain);
     }
 
     /**
@@ -62,7 +62,7 @@ class DomainController extends Controller
 
         $domain->update($validatedData->validated());
 
-        return response()->json($domain);
+        return new DomainResource($domain);
     }
 
     /**

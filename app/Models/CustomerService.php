@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class CustomerService extends Pivot
 {
+    use HasFactory;
+
     public $incrementing = true; // Since we added an ID to the pivot table
 
     protected $table = 'customer_service';

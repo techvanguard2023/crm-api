@@ -23,6 +23,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/change-password', [AuthController::class, 'changePassword']);
 
         Route::get('/customers/with-services', [CustomerController::class, 'withServices']);
         Route::get('/customers/by-service/{service}', [CustomerController::class, 'byServiceType']);
@@ -33,6 +34,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/expenses/metrics', [ExpenseController::class, 'metrics']);
         Route::apiResource('expenses', ExpenseController::class);
 
+        Route::get('/customer-services/due-today', [CustomerServiceController::class, 'dueToday']);
+        Route::get('/customer-services/overdue', [CustomerServiceController::class, 'overdue']);
         Route::get('/customer-services/ready-to-bill-metrics', [CustomerServiceController::class, 'readyToBillMetrics']);
         Route::get('/customer-services/ready-to-bill', [CustomerServiceController::class, 'readyToBill']);
         Route::post('/customer-services/{id}/renew', [CustomerServiceController::class, 'renew']);

@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreExpenseRequest;
+use App\Http\Requests\UpdateExpenseRequest;
+use App\Http\Resources\ExpenseResource;
 use App\Models\Expense;
-use Illuminate\Http\Request;
+use App\Services\RecurrenceService;
 
 class ExpenseController extends Controller
 {
@@ -34,27 +37,17 @@ class ExpenseController extends Controller
     public function index()
     {
         $expenses = Expense::orderBy('date', 'desc')->get();
-        return response()->json($expenses);
+        return ExpenseResource::collection($expenses);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreExpenseRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'amount' => 'required|numeric',
-            'date' => 'required|date',
-            'recurrence' => 'required|string|in:monthly,yearly,one_time',
-            'category' => 'nullable|string|max:255',
-            'status' => 'nullable|string|in:pending,paid,cancelled',
-        ]);
+        $expense = Expense::create($request->validated());
 
-        $expense = Expense::create($validated);
-
-        return response()->json($expense, 201);
+        return (new ExpenseResource($expense))->response()->setStatusCode(201);
     }
 
     /**
@@ -62,27 +55,17 @@ class ExpenseController extends Controller
      */
     public function show(Expense $expense)
     {
-        return response()->json($expense);
+        return new ExpenseResource($expense);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Expense $expense)
+    public function update(UpdateExpenseRequest $request, Expense $expense)
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|required|string',
-            'amount' => 'sometimes|required|numeric',
-            'date' => 'sometimes|required|date',
-            'recurrence' => 'sometimes|required|string|in:monthly,yearly,one_time',
-            'category' => 'nullable|string|max:255',
-            'status' => 'nullable|string|in:pending,paid,cancelled',
-        ]);
+        $expense->update($request->validated());
 
-        $expense->update($validated);
-
-        return response()->json($expense);
+        return new ExpenseResource($expense);
     }
 
     /**

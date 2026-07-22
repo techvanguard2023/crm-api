@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-
+use App\Http\Requests\StoreCustomerRequest;
+use App\Http\Requests\UpdateCustomerRequest;
+use App\Http\Requests\AttachServiceToCustomerRequest;
 use App\Models\Customer;
 use App\Http\Resources\CustomerResource;
-use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
@@ -15,8 +16,7 @@ class CustomerController extends Controller
      */
     public function index()
     {
-        $customers = Customer::with(['domains', 'services'])->get();
-        \Illuminate\Database\Eloquent\Collection::make($customers->pluck('services')->flatten()->pluck('pivot'))->load('domain');
+        $customers = $this->loadCustomersWithRelations(Customer::query());
 
         return CustomerResource::collection($customers);
     }
@@ -24,25 +24,11 @@ class CustomerController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreCustomerRequest $request)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'company_name' => 'nullable|string|max:255',
-            'email' => 'required|email|unique:customers,email',
-            'phone' => 'required|string|max:20',
-            'type' => 'nullable|string',
-            'document' => 'nullable|string',
-            'address' => 'nullable|string',
-            'city' => 'nullable|string',
-            'state' => 'nullable|string',
-            'zip_code' => 'nullable|string',
-            'country' => 'nullable|string',
-        ]);
+        $customer = Customer::create($request->validated());
 
-        $customer = Customer::create($validatedData);
-
-        return response()->json($customer, 201);
+        return new CustomerResource($customer);
     }
 
     /**
@@ -50,8 +36,7 @@ class CustomerController extends Controller
      */
     public function show(Customer $customer)
     {
-        $customer->load(['domains', 'services']);
-        \Illuminate\Database\Eloquent\Collection::make($customer->services->pluck('pivot'))->load('domain');
+        $this->loadSingleCustomerWithRelations($customer);
 
         return new CustomerResource($customer);
     }
@@ -59,25 +44,11 @@ class CustomerController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Customer $customer)
+    public function update(UpdateCustomerRequest $request, Customer $customer)
     {
-        $validatedData = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'company_name' => 'nullable|string|max:255',
-            'email' => 'sometimes|required|email|unique:customers,email,' . $customer->id,
-            'phone' => 'sometimes|required|string|max:20',
-            'type' => 'nullable|string',
-            'document' => 'nullable|string',
-            'address' => 'nullable|string',
-            'city' => 'nullable|string',
-            'state' => 'nullable|string',
-            'zip_code' => 'nullable|string',
-            'country' => 'nullable|string',
-        ]);
+        $customer->update($request->validated());
 
-        $customer->update($validatedData);
-
-        return response()->json($customer);
+        return new CustomerResource($customer);
     }
 
     /**
@@ -93,21 +64,15 @@ class CustomerController extends Controller
     /**
      * Attach a service to the customer.
      */
-    public function addService(Request $request, Customer $customer)
+    public function addService(AttachServiceToCustomerRequest $request, Customer $customer)
     {
-        $validatedData = $request->validate([
-            'service_id' => 'required|exists:services,id',
-            'price' => 'required|numeric|min:0',
-            'recurrence' => 'required|string',
-            'start_date' => 'required|date',
-            'next_due_date' => 'required|date',
-        ]);
+        $data = $request->validated();
 
-        $customer->services()->attach($validatedData['service_id'], [
-            'price' => $validatedData['price'],
-            'recurrence' => $validatedData['recurrence'],
-            'start_date' => $validatedData['start_date'],
-            'next_due_date' => $validatedData['next_due_date']
+        $customer->services()->attach($data['service_id'], [
+            'price' => $data['price'],
+            'recurrence' => $data['recurrence'],
+            'start_date' => $data['start_date'],
+            'next_due_date' => $data['next_due_date']
         ]);
 
         return response()->json(['message' => 'Service attached successfully.'], 201);
@@ -117,25 +82,43 @@ class CustomerController extends Controller
      */
     public function withServices()
     {
-        $customers = Customer::has('services')->with(['domains', 'services'])->get();
-        \Illuminate\Database\Eloquent\Collection::make($customers->pluck('services')->flatten()->pluck('pivot'))->load('domain');
+        $customers = $this->loadCustomersWithRelations(Customer::has('services'));
 
         return CustomerResource::collection($customers);
     }
 
     /**
      * Get customers filtered by a specific service type (service ID).
+     * Returns all services and domains associated with the customer.
      */
     public function byServiceType($serviceId)
     {
-        $customers = Customer::whereHas('services', function ($query) use ($serviceId) {
-            $query->where('services.id', $serviceId);
-        })->with(['domains', 'services' => function ($query) use ($serviceId) {
-            $query->where('services.id', $serviceId);
-        }])->get();
+        $query = Customer::whereHas('services', function ($q) use ($serviceId) {
+            $q->where('services.id', $serviceId);
+        })->with(['domains', 'services']);
 
-        \Illuminate\Database\Eloquent\Collection::make($customers->pluck('services')->flatten()->pluck('pivot'))->load('domain');
+        $customers = $this->loadCustomersWithRelations($query);
 
         return CustomerResource::collection($customers);
+    }
+
+    /**
+     * Load customers with domains and services (with domain relation on pivots).
+     */
+    private function loadCustomersWithRelations($query)
+    {
+        $customers = $query->with(['domains', 'services'])->get();
+        $customers->pluck('services')->flatten()->pluck('pivot')->each->load('domain');
+
+        return $customers;
+    }
+
+    /**
+     * Load a single customer with domains and services (with domain relation on pivots).
+     */
+    private function loadSingleCustomerWithRelations(Customer $customer): void
+    {
+        $customer->load(['domains', 'services']);
+        $customer->services->pluck('pivot')->each->load('domain');
     }
 }

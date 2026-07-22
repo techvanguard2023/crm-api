@@ -1,90 +1,202 @@
-# CRM API
+# CRM API - Laravel REST API
 
-API Restful desenvolvida em Laravel 11 para gerenciamento de clientes, serviços, domínios e contratos.
+A comprehensive Customer Relationship Management API built with Laravel 12, featuring customer management, service billing, expense tracking, and payment processing.
 
-## 🚀 Tecnologias
+## Features
 
--   **PHP 8.2+**
--   **Laravel 11**
--   **MySQL / MariaDB**
--   **Sanctum** (Autenticação)
+- **Customer Management**: Create, update, and manage customer profiles
+- **Service Billing**: Attach services with customizable pricing and recurrence
+- **Payment Processing**: Multiple payment methods (PIX, Boleto)
+- **Expense Tracking**: Monitor and categorize business expenses
+- **Domain Management**: Associate and manage customer domains
+- **Automated Testing**: 43 comprehensive tests covering all endpoints
 
-## 📋 Funcionalidades Principais
+## Technology Stack
 
--   **Gerenciamento de Clientes**: CRUD completo de clientes.
--   **Catálogo de Serviços**: Cadastro de serviços (ex: Hospedagem, Manutenção).
--   **Associação N:N**:
-    -   Clientes podem contratar múltiplos serviços.
-    -   Cada contrato (Cliente-Serviço) tem seu **Preço** e **Recorrência** personalizados.
--   **Domínios**: Gestão de domínios vinculados aos clientes.
--   **Autenticação**: Rotas protegidas via tokens Sanctum.
+- **Framework**: Laravel 12
+- **Database**: MySQL 8.0
+- **Testing**: PHPUnit with SQLite in-memory database
+- **Authentication**: Laravel Sanctum
+- **API Format**: RESTful JSON with Resource classes
 
-## 🛠️ Instalação
+## Running Tests
 
-1.  **Clone o repositório**
-    ```bash
-    git clone https://github.com/seu-usuario/crm-api.git
-    cd crm-api
-    ```
+### Quick Reference
 
-2.  **Instale as dependências**
-    ```bash
-    composer install
-    ```
+All Tests:
+```bash
+docker-compose exec laravel.test php artisan test
+```
 
-3.  **Configure o ambiente**
-    ```bash
-    cp .env.example .env
-    php artisan key:generate
-    ```
-    *Edite o arquivo `.env` com as credenciais do seu banco de dados.*
+Specific Test File:
+```bash
+docker-compose exec laravel.test php artisan test tests/Feature/CustomerTest.php
+```
 
-4.  **Rode as migrações**
-    ```bash
-    php artisan migrate
-    ```
+Specific Test Method:
+```bash
+docker-compose exec laravel.test php artisan test --filter test_index_returns_customers
+```
 
-5.  **Inicie o servidor**
-    ```bash
-    php artisan serve
-    ```
+### Test Suite Overview
 
-## 📚 Documentação da API
+**43 comprehensive tests** with **305 assertions** across 6 test files:
 
-### Autenticação
-Todas as rotas abaixo requerem o header `Authorization: Bearer <token>`, exceto Login/Register.
+| Test File | Tests | Purpose |
+|-----------|-------|---------|
+| CustomerTest.php | 7 | Customer CRUD, service attachment, soft delete |
+| ServiceTest.php | 6 | Service CRUD, validation |
+| ExpenseTest.php | 7 | Expense management, metrics |
+| DomainTest.php | 7 | Domain CRUD, unique constraints |
+| CustomerServiceTest.php | 5 | Service renewal, billing metrics |
+| PaymentTest.php | 4 | Payment requests, callbacks |
 
-### Clientes (`/api/v1/customers`)
--   `GET /` - Lista todos os clientes (com serviços e domínios).
--   `POST /` - Cria um novo cliente.
--   `GET /{id}` - Exibe detalhes de um cliente.
--   `PUT /{id}` - Atualiza um cliente.
--   `DELETE /{id}` - Remove um cliente.
+**Test Execution**: ~1.5 seconds  
+**Database**: SQLite in-memory (isolated per test)
 
-#### Associar Serviço a Cliente (Contrato)
--   `POST /api/v1/customers/{id}/services`
-    -   Vincula um serviço do catálogo ao cliente com condições específicas.
-    -   **Payload:**
-        ```json
-        {
-            "service_id": 1,
-            "price": 100.00,
-            "recurrence": "mensal"
-        }
-        ```
+### Test Database Configuration
 
-### Serviços (`/api/v1/services`)
--   `GET /` - Lista o catálogo de serviços.
--   `POST /` - Cria um novo serviço no catálogo.
+Tests use SQLite in-memory database (phpunit.xml):
+```xml
+<env name="DB_CONNECTION" value="sqlite"/>
+<env name="DB_DATABASE" value=":memory:"/>
+```
 
-### Domínios (`/api/v1/domains`)
--   Gerenciamento de domínios dos clientes.
+Benefits:
+- Fresh database per test
+- No cleanup required
+- Automatic rollback after test
+- Sub-2 second execution
 
-## 🗄️ Modelagem de Dados (Destaque)
+## Key Design Patterns
 
-O sistema utiliza uma relação **Muitos-para-Muitos** entre `Customer` e `Service`:
+### 1. Resource Classes
 
--   **Tabela `services`**: Define O QUE é o serviço (Nome, Descrição).
--   **Tabela `customer_service` (Pivô)**: Define O CONTRATO (Preço, Recorrência que aquele cliente paga).
+All API responses standardized with Resource classes:
 
-Isso permite que o serviço "Hospedagem VPS" exista uma única vez no sistema, mas tenha preços diferentes para o "Cliente A" e "Cliente B".
+- CustomerResource (14 fields)
+- ServiceResource (5 fields)
+- ExpenseResource (10 fields)
+- DomainResource (7 fields)
+- PaymentResource (with related data)
+
+### 2. FormRequest Validation
+
+Centralized validation with comprehensive documentation:
+
+- StoreCustomerRequest
+- UpdateCustomerRequest
+- StoreExpenseRequest / UpdateExpenseRequest
+- AttachServiceToCustomerRequest
+- RenewCustomerServiceRequest
+- StorePaymentRequest / UpdatePaymentCallbackRequest
+
+### 3. Recurrence Service
+
+Billing cycle calculations for: once, daily, weekly, bi-weekly, monthly, quarterly, semi-annual, annual
+
+## API Endpoints
+
+### Customers
+- GET /api/v1/customers
+- POST /api/v1/customers
+- GET /api/v1/customers/{id}
+- PUT /api/v1/customers/{id}
+- DELETE /api/v1/customers/{id}
+- POST /api/v1/customers/{id}/services
+
+### Services
+- GET /api/v1/services
+- POST /api/v1/services
+- GET /api/v1/services/{id}
+- PUT /api/v1/services/{id}
+- DELETE /api/v1/services/{id}
+
+### Expenses
+- GET /api/v1/expenses
+- GET /api/v1/expenses/metrics
+- POST /api/v1/expenses
+- GET /api/v1/expenses/{id}
+- PUT /api/v1/expenses/{id}
+- DELETE /api/v1/expenses/{id}
+
+### Domains
+- GET /api/v1/domains
+- POST /api/v1/domains
+- GET /api/v1/domains/{id}
+- PUT /api/v1/domains/{id}
+- DELETE /api/v1/domains/{id}
+
+### Payments
+- GET /api/v1/payments
+- POST /api/v1/customer-services/{id}/payment-request
+- PUT /api/v1/payments/callback
+- GET /api/v1/payments/request/{request_id}
+- GET /api/v1/payments/request/{request_id}/customer
+
+## Project Structure
+
+```
+app/
+├── Models/                 # Eloquent models
+├── Http/
+│   ├── Controllers/Api/   # API controllers
+│   ├── Requests/          # Form request validation
+│   └── Resources/         # JSON API resources
+├── Services/              # Business logic
+└── Traits/               # Reusable traits
+
+database/
+├── migrations/            # Schema migrations
+├── factories/             # Model factories
+└── seeders/              # Database seeders
+
+tests/
+├── Feature/              # Integration tests
+└── TestCase.php          # Base test case
+```
+
+## API Response Format
+
+List Response:
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com"
+    }
+  ]
+}
+```
+
+Single Resource:
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+```
+
+## Troubleshooting
+
+Regenerate autoloader:
+```bash
+docker-compose exec laravel.test composer dump-autoload
+```
+
+Reset database:
+```bash
+docker-compose exec laravel.test php artisan migrate:fresh
+```
+
+Fix permissions:
+```bash
+docker-compose exec laravel.test chmod -R 755 storage bootstrap/cache
+```
+
+## License
+
+MIT License

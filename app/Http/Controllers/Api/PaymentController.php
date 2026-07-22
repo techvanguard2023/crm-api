@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePaymentRequest;
+use App\Http\Requests\UpdatePaymentCallbackRequest;
+use App\Http\Resources\PaymentResource;
 use App\Models\CustomerService;
 use App\Models\Payment;
-use App\Models\ServiceRenewal;
+use App\Services\RecurrenceService;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class PaymentController extends Controller
@@ -17,28 +19,9 @@ class PaymentController extends Controller
      */
     public function index()
     {
-        $payments = Payment::with(['customerService.service'])
-            ->get()
-            ->map(function ($payment) {
-            return [
-            'id' => $payment->id,
-            'request_id' => $payment->request_id,
-            'amount' => $payment->amount,
-            'status' => $payment->status,
-            'pix_copy_paste' => $payment->pix_copy_paste,
-            'barcode' => $payment->barcode,
-            'digitable_line' => $payment->digitable_line,
-            'your_number' => $payment->your_number,
-            'payment_method' => $payment->payment_method,
-            'paid_at' => $payment->paid_at,
-            'service_name' => $payment->customerService->service->name ?? null,
-            'due_date' => $payment->customerService->next_due_date ?? null,
-            'created_at' => $payment->created_at,
-            'updated_at' => $payment->updated_at,
-            ];
-        });
+        $payments = Payment::with(['customerService.service'])->get();
 
-        return response()->json($payments);
+        return PaymentResource::collection($payments);
     }
 
     /**
@@ -46,27 +29,19 @@ class PaymentController extends Controller
      * This is separate from 'renew' which was immediate.
      * Use this if you want to store the barcode BEFORE payment.
      */
-    public function store(Request $request, $id)
+    public function store(StorePaymentRequest $request, $id)
     {
         $customerService = CustomerService::findOrFail($id);
-
-        $validatedData = $request->validate([
-            'amount' => 'nullable|numeric',
-            'request_id' => 'required|string', // codigoSolicitacao
-            'barcode' => 'nullable|string',
-            'pix_copy_paste' => 'nullable|string',
-            'status' => 'nullable|string',
-            // Add other fields as necessary
-        ]);
+        $data = $request->validated();
 
         $payment = new Payment();
         $payment->customer_service_id = $customerService->id;
         $payment->fill([
-            'request_id' => $validatedData['request_id'],
-            'amount' => $validatedData['amount'],
-            'status' => $validatedData['status'] ?? 'PENDING',
-            'barcode' => $validatedData['barcode'] ?? null,
-            'pix_copy_paste' => $validatedData['pix_copy_paste'] ?? null,
+            'request_id' => $data['request_id'],
+            'amount' => $data['amount'],
+            'status' => $data['status'] ?? 'PENDING',
+            'barcode' => $data['barcode'] ?? null,
+            'pix_copy_paste' => $data['pix_copy_paste'] ?? null,
         ]);
         $payment->save();
 
@@ -77,27 +52,13 @@ class PaymentController extends Controller
      * Webhook/Callback to update payment status.
      * Or a manual update endpoint.
      */
-    public function update(Request $request)
+    public function update(UpdatePaymentCallbackRequest $request)
     {
-        // Assuming the bank sends the body structure provided by user
-        // We find by request_id (codigoSolicitacao)
-
-        $data = $request->validate([
-            'codigoSolicitacao' => 'required|string',
-            'situacao' => 'required|string',
-            'valorTotalRecebido' => 'nullable|numeric', // String in example, but castable
-            'dataHoraSituacao' => 'nullable|string',
-            // ... capture other fields to update
-            'seuNumero' => 'nullable|string',
-            'origemRecebimento' => 'nullable|string',
-            'nossoNumero' => 'nullable|string',
-            'codigoBarras' => 'nullable|string',
-            'linhaDigitavel' => 'nullable|string',
-            'txid' => 'nullable|string',
-            'pixCopiaECola' => 'nullable|string',
-        ]);
+        $data = $request->validated();
 
         $payment = Payment::where('request_id', $data['codigoSolicitacao'])->firstOrFail();
+
+        $wasAlreadySettled = $this->isSettledStatus($payment->status);
 
         // Update payment details
         $payment->update([
@@ -113,16 +74,19 @@ class PaymentController extends Controller
             'pix_copy_paste' => $data['pixCopiaECola'] ?? $payment->pix_copy_paste,
         ]);
 
-        // Check if status is RECEBIDO and not processed yet (we could add a 'processed' flag or check if renewal exists)
-        if ($data['situacao'] === 'RECEBIDO'
-        || $data['situacao'] === 'CONFIRMADO'
-        || $data['situacao'] === 'MARCADO_RECEBIDO'
-        || $data['situacao'] === 'PAGO'
-        || $data['situacao'] === 'LIQUIDADO') {
+        // Only trigger a renewal on the transition into a settled status - if the
+        // payment was already settled before this callback, the gateway is just
+        // resending/retrying and we must not double-renew.
+        if (!$wasAlreadySettled && $this->isSettledStatus($data['situacao'])) {
             $this->processRenewal($payment);
         }
 
         return response()->json(['message' => 'Payment updated successfully']);
+    }
+
+    private function isSettledStatus(?string $status): bool
+    {
+        return in_array($status, ['RECEBIDO', 'CONFIRMADO', 'MARCADO_RECEBIDO', 'PAGO', 'LIQUIDADO'], true);
     }
 
     private function processRenewal(Payment $payment)
@@ -134,40 +98,7 @@ class PaymentController extends Controller
             return;
         }
 
-
-        // Calculate next date (reuse logic? extract to service?)
-        $baseDate = $customerService->next_due_date ?? $customerService->start_date ?? now();
-        $baseDate = Carbon::parse($baseDate);
-
-
-        $newDueDate = $baseDate->copy();
-
-        switch ($customerService->recurrence) {
-            case 'monthly':
-                $newDueDate->addMonth();
-                break;
-            case 'quarterly':
-                $newDueDate->addMonths(3);
-                break;
-            case 'semiannual':
-                $newDueDate->addMonths(6);
-                break;
-            case 'yearly':
-                $newDueDate->addYear();
-                break;
-            default:
-                $newDueDate->addMonth();
-                break;
-        }
-
-        ServiceRenewal::create([
-            'customer_service_id' => $customerService->id,
-            'amount' => $payment->amount,
-            'renewed_at' => $payment->paid_at ?? now(),
-            'renews_until' => $newDueDate
-        ]);
-
-        $customerService->update(['next_due_date' => $newDueDate]);
+        RecurrenceService::renewCustomerService($customerService, $payment->amount, $payment->paid_at);
     }
     public function getCustomerByRequestId($requestId)
     {
@@ -189,15 +120,6 @@ class PaymentController extends Controller
             ->with(['customerService.service'])
             ->firstOrFail();
 
-        return response()->json([
-            'request_id' => $payment->request_id,
-            'amount' => $payment->amount,
-            'pix_copy_paste' => $payment->pix_copy_paste,
-            'barcode' => $payment->barcode,
-            'digitable_line' => $payment->digitable_line,
-            'your_number' => $payment->your_number,
-            'service_name' => $payment->customerService->service->name ?? null,
-            'due_date' => $payment->customerService->next_due_date ?? null,
-        ]);
+        return new PaymentResource($payment);
     }
 }
